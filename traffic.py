@@ -61,48 +61,74 @@ def load_data(data_dir):
     images = []
     labels = []
     
-    # Iterate through each category directory (0 to NUM_CATEGORIES - 1)
+    # Debug: Check if data_dir exists and what's in it
+    if not os.path.exists(data_dir):
+        return images, labels
+    
+    # Try different approaches to find category directories
+    # First, try the standard approach (0, 1, 2, ...)
     for category in range(NUM_CATEGORIES):
         category_dir = os.path.join(data_dir, str(category))
         
-        # Check if category directory exists
-        if not os.path.exists(category_dir):
-            continue
-            
-        # Get all image files in the category directory
-        try:
-            for filename in os.listdir(category_dir):
-                # Skip non-image files
-                if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-                    continue
-                    
-                # Construct full path to image file
-                image_path = os.path.join(category_dir, filename)
-                
-                try:
-                    # Read image using OpenCV
-                    image = cv2.imread(image_path)
-                    
-                    # Check if image was loaded successfully
-                    if image is None:
+        if os.path.exists(category_dir):
+            try:
+                for filename in os.listdir(category_dir):
+                    if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
                         continue
+                        
+                    image_path = os.path.join(category_dir, filename)
                     
-                    # Convert from BGR to RGB (OpenCV reads in BGR format)
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                    
-                    # Resize image to required dimensions
-                    image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
-                    
-                    # Add image and label to lists
-                    images.append(image)
-                    labels.append(category)
-                    
-                except Exception as e:
-                    # Silently continue on error to avoid cluttering output
-                    continue
-        except Exception as e:
-            # Skip directory if we can't read it
-            continue
+                    try:
+                        image = cv2.imread(image_path)
+                        if image is None:
+                            continue
+                        
+                        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                        image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+                        
+                        images.append(image)
+                        labels.append(category)
+                        
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+    
+    # If no images found with standard approach, try alternative approaches
+    if len(images) == 0:
+        # Try looking for any subdirectories that might contain images
+        try:
+            for item in os.listdir(data_dir):
+                item_path = os.path.join(data_dir, item)
+                if os.path.isdir(item_path):
+                    # Try to parse category number from directory name
+                    try:
+                        category = int(item)
+                        if 0 <= category < NUM_CATEGORIES:
+                            for filename in os.listdir(item_path):
+                                if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                                    continue
+                                    
+                                image_path = os.path.join(item_path, filename)
+                                
+                                try:
+                                    image = cv2.imread(image_path)
+                                    if image is None:
+                                        continue
+                                    
+                                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                                    image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+                                    
+                                    images.append(image)
+                                    labels.append(category)
+                                    
+                                except Exception:
+                                    continue
+                    except ValueError:
+                        # Directory name is not a number, skip
+                        continue
+        except Exception:
+            pass
     
     return images, labels
 
