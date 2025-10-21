@@ -61,44 +61,76 @@ def load_data(data_dir):
     images = []
     labels = []
     
-    # Iterate through each category directory (0 to NUM_CATEGORIES - 1)
+    # Check if data directory exists
+    if not os.path.exists(data_dir):
+        return images, labels
+    
+    # Try multiple approaches to find images
+    # Approach 1: Standard numbered directories (0, 1, 2, ...)
     for category in range(NUM_CATEGORIES):
         category_dir = os.path.join(data_dir, str(category))
-        
-        # Check if category directory exists
-        if not os.path.exists(category_dir):
-            continue
-            
-        # Get all image files in the category directory
-        for filename in os.listdir(category_dir):
-            # Skip non-image files
-            if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-                continue
-                
-            # Construct full path to image file
-            image_path = os.path.join(category_dir, filename)
-            
+        if os.path.exists(category_dir):
             try:
-                # Read image using OpenCV
-                image = cv2.imread(image_path)
-                
-                # Check if image was loaded successfully
-                if image is None:
-                    continue
-                
-                # Convert from BGR to RGB (OpenCV reads in BGR format)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                
-                # Resize image to required dimensions
-                image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
-                
-                # Add image and label to lists
-                images.append(image)
-                labels.append(category)
-                
+                for filename in os.listdir(category_dir):
+                    # Be very permissive with file extensions
+                    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.gif', '.ppm', '.pgm')):
+                        image_path = os.path.join(category_dir, filename)
+                        image = cv2.imread(image_path)
+                        if image is not None:
+                            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                            image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+                            images.append(image)
+                            labels.append(category)
             except Exception:
-                # Silently continue on error
                 continue
+    
+    # Approach 2: If no images found, try scanning all subdirectories
+    if len(images) == 0:
+        try:
+            for item in os.listdir(data_dir):
+                item_path = os.path.join(data_dir, item)
+                if os.path.isdir(item_path):
+                    try:
+                        category = int(item)
+                        if 0 <= category < NUM_CATEGORIES:
+                            for filename in os.listdir(item_path):
+                                if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.gif', '.ppm', '.pgm')):
+                                    image_path = os.path.join(item_path, filename)
+                                    image = cv2.imread(image_path)
+                                    if image is not None:
+                                        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                                        image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+                                        images.append(image)
+                                        labels.append(category)
+                    except ValueError:
+                        continue
+        except Exception:
+            pass
+    
+    # Approach 3: If still no images, try recursive search
+    if len(images) == 0:
+        try:
+            for root, dirs, files in os.walk(data_dir):
+                for filename in files:
+                    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.gif', '.ppm', '.pgm')):
+                        # Try to extract category from path
+                        path_parts = root.split(os.sep)
+                        for part in path_parts:
+                            try:
+                                category = int(part)
+                                if 0 <= category < NUM_CATEGORIES:
+                                    image_path = os.path.join(root, filename)
+                                    image = cv2.imread(image_path)
+                                    if image is not None:
+                                        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                                        image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+                                        images.append(image)
+                                        labels.append(category)
+                                    break
+                            except ValueError:
+                                continue
+        except Exception:
+            pass
     
     return images, labels
 
