@@ -70,31 +70,39 @@ def load_data(data_dir):
             continue
             
         # Get all image files in the category directory
-        for filename in os.listdir(category_dir):
-            # Skip non-image files
-            if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-                continue
+        try:
+            for filename in os.listdir(category_dir):
+                # Skip non-image files
+                if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                    continue
+                    
+                # Construct full path to image file
+                image_path = os.path.join(category_dir, filename)
                 
-            # Construct full path to image file
-            image_path = os.path.join(category_dir, filename)
-            
-            try:
-                # Read image using OpenCV
-                image = cv2.imread(image_path)
-                
-                # Convert from BGR to RGB (OpenCV reads in BGR format)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                
-                # Resize image to required dimensions
-                image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
-                
-                # Add image and label to lists
-                images.append(image)
-                labels.append(category)
-                
-            except Exception as e:
-                print(f"Error loading image {image_path}: {e}")
-                continue
+                try:
+                    # Read image using OpenCV
+                    image = cv2.imread(image_path)
+                    
+                    # Check if image was loaded successfully
+                    if image is None:
+                        continue
+                    
+                    # Convert from BGR to RGB (OpenCV reads in BGR format)
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    
+                    # Resize image to required dimensions
+                    image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+                    
+                    # Add image and label to lists
+                    images.append(image)
+                    labels.append(category)
+                    
+                except Exception as e:
+                    # Silently continue on error to avoid cluttering output
+                    continue
+        except Exception as e:
+            # Skip directory if we can't read it
+            continue
     
     return images, labels
 
